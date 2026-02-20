@@ -3,6 +3,7 @@ const dotenv = require("dotenv");
 const connectDb = require("./db/connect");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
+const errorHandler = require("./middlewares/error.middleware");
 const app = express();
 
 dotenv.config();
@@ -21,6 +22,10 @@ app.use(cookieParser());
 
 connectDb();
 
+app.use("/api/users", require("./routes/user.routes"));
+
+app.use(errorHandler);
+
 app.listen(process.env.PORT, () => {
-  console.log(`server is listen on port ${process.env.PORT}`);
+  console.log(`server is listen on port http://localhost/${process.env.PORT}`);
 });
