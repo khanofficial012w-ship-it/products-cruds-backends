@@ -2,6 +2,7 @@ const User = require("../models/user.model");
 const ApiError = require("../utils/ApiError");
 const ApiResponse = require("../utils/ApiResponse");
 const asyncHandler = require("../utils/asyncHandler");
+const jwt = require("jsonwebtoken");
 
 const register = asyncHandler(async (req, res, next) => {
   const { username, password, email } = req.body;
@@ -88,4 +89,62 @@ const login = asyncHandler(async (req, res) => {
     );
 });
 
-module.exports = { register, login };
+const refreshToken = asyncHandler(async (req, res) => {
+  const incommingRefreshToken = req.cookies.refreshToken;
+
+  if (!incommingRefreshToken) {
+    throw new ApiError(401, "Unauthorized");
+  }
+
+  const decoded = jwt.verify(
+    incommingRefreshToken,
+    process.env.JWT_REFRESH_SECRET,
+  );
+
+  const user = await User.findById(decoded.id);
+
+  if (!user || incommingRefreshToken !== user.refreshToken) {
+    throw new ApiError(401, "Invalid refresh token");
+  }
+
+  const newAccessToken = user.generateAccessToken();
+  const newRefreshToken = user.generateRefreshToken();
+
+  user.refreshToken = newRefreshToken;
+  await user.save({ validateBeforeSave: false });
+
+  res
+    .cookie("accessToken", newAccessToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "strict",
+    })
+    .cookie("refreshToken", newRefreshToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "strict",
+    })
+    .status(200)
+    .json(new ApiResponse(200, "Token refreshed"));
+});
+
+const logout = asyncHandler(async (req, res) => {
+  const refreshToken = req.cookies.refreshToken;
+
+  if (refreshToken) {
+    const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+    if (decoded?.id) {
+      await User.findByIdAndUpdate(decoded.id, {
+        $unset: { refreshToken: 1 },
+      });
+    }
+  }
+
+  res
+    .clearCookie("accessToken")
+    .clearCookie("refreshToken")
+    .status(200)
+    .json(new ApiResponse(200, "Logged out successfully"));
+});
+
+module.exports = { register, login, refreshToken, logout };
