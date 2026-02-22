@@ -32,7 +32,11 @@ const categorySchema = new mongoose.Schema(
       default: true,
     },
   },
-  { timestamps: true },
+  {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
+  },
 );
 
 categorySchema.pre("save", function () {
