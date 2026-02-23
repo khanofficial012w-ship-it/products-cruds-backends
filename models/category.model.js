@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-const { default: slugify } = require("slugify");
+const slugify = require("slugify");
 
 const categorySchema = new mongoose.Schema(
   {
@@ -32,7 +32,11 @@ const categorySchema = new mongoose.Schema(
       default: true,
     },
   },
-  { timestamps: true },
+  {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
+  },
 );
 
 categorySchema.pre("save", function () {
