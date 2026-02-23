@@ -1,28 +1,6 @@
 const mongoose = require("mongoose");
 const slugify = require("slugify");
 
-const reviewSchema = new mongoose.Schema(
-  {
-    user: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
-    rating: {
-      type: Number,
-      min: 1,
-      max: 5,
-      require: true,
-    },
-    comment: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-  },
-  { timestamps: true },
-);
-
 const productSchema = new mongoose.Schema(
   {
     name: {
@@ -93,7 +71,15 @@ const productSchema = new mongoose.Schema(
       },
     ],
 
-    reviews: [reviewSchema],
+    averageRating: {
+      type: Number,
+      default: 0,
+    },
+
+    numReviews: {
+      type: Number,
+      default: 0,
+    },
 
     isFeatured: {
       type: Boolean,
@@ -103,6 +89,12 @@ const productSchema = new mongoose.Schema(
     isActive: {
       type: Boolean,
       default: true,
+    },
+
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
     },
   },
 
@@ -119,11 +111,19 @@ productSchema.pre("save", function () {
   }
 });
 
+productSchema.virtual("reviews", {
+  ref: "Review",
+  foreignField: "product",
+  localField: "_id",
+});
+
 productSchema.virtual("discountPercentage").get(function () {
   if (!this.discountPrice) return 0;
   return Math.round(((this.price - this.discountPrice) / this.price) * 100);
 });
 
 productSchema.index({ name: "text", description: "text", brand: "text" });
+productSchema.index({ price: 1 });
+productSchema.index({ averageRating: -1 });
 
 module.exports = mongoose.model("Product", productSchema);
