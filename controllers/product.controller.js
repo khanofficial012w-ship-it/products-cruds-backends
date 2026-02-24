@@ -15,15 +15,54 @@ exports.createProduct = asyncHandler(async (req, res) => {
 });
 
 exports.getProducts = asyncHandler(async (req, res) => {
-  const product = await Product.find();
+  const product = await Product.find({ isActive: true });
 
   res
     .status(201)
     .json(new ApiResponse(201, "Product get successfully", product));
 });
 
-exports.getSingleProduct = asyncHandler(async (req, res) => {});
+exports.getSingleProduct = asyncHandler(async (req, res) => {
+  const slug = req.params.slug;
 
-exports.updateProduct = asyncHandler(async (req, res) => {});
+  const product = await Product.find({ slug: slug, isActive: true })
+    .populate("category", "name")
+    .populate("createdBy", "username");
 
-exports.deleteProduct = asyncHandler(async (req, res) => {});
+  if (!product) {
+    new ApiError(404, "Product not found");
+  }
+
+  res
+    .status(200)
+    .json(new ApiResponse(200, "Product found successfully", product));
+});
+
+exports.updateProduct = asyncHandler(async (req, res) => {
+  const product = await Product.findOne({ slug: req.params.slug });
+
+  if (!product) {
+    new ApiError(404, "Product not found");
+  }
+
+  Object.assign(product, req.body);
+  await product.save();
+
+  res
+    .status(200)
+    .json(new ApiResponse(200, "Product update successfully", product));
+});
+
+exports.deleteProduct = asyncHandler(async (req, res) => {
+  const product = await Product.findOne({ slug: req.params.slug });
+
+  if (!product) {
+    new ApiError(404, "Product not found");
+  }
+  product.isActive = false;
+  await product.save();
+
+  res
+    .status(200)
+    .json(new ApiResponse(200, "Product deactivated successfully", product));
+});
