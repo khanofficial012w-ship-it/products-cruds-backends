@@ -1,25 +1,24 @@
-const Product = require("../models/product.model");
+const Category = require("../models/category.model");
 const asyncHandler = require("../utils/asyncHandler");
 const ApiError = require("../utils/ApiError");
 const ApiResponse = require("../utils/ApiResponse");
 
 exports.createProduct = asyncHandler(async (req, res) => {
-  const product = await Product.create({
+  const category = await Category.create({
     ...req.body,
-    createdBy: req.user._id,
   });
 
   res
     .status(201)
-    .json(new ApiResponse(201, "Product created successfully", product));
+    .json(new ApiResponse(201, "Category created successfully", product));
 });
 
 exports.getProducts = asyncHandler(async (req, res) => {
-  const product = await Product.find();
+  const category = await Category.find();
 
   res
     .status(201)
-    .json(new ApiResponse(201, "Product get successfully", product));
+    .json(new ApiResponse(201, "Category get successfully", product));
 });
 
 exports.getSingleProduct = asyncHandler(async (req, res) => {});
