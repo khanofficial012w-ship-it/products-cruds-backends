@@ -4,7 +4,6 @@ const connectDb = require("./db/connect");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const errorHandler = require("./middlewares/error.middleware");
-const { protect } = require("./middlewares/auth.middleware");
 const app = express();
 
 dotenv.config();
@@ -24,8 +23,8 @@ app.use(cookieParser());
 connectDb();
 
 app.use("/api/users", require("./routes/user.routes"));
-app.use("/api/products", protect, require("./routes/product.routes"));
-app.use("/api/category", protect, require("./routes/category.routes"));
+app.use("/api/products", require("./routes/product.routes"));
+app.use("/api/category", require("./routes/category.routes"));
 
 app.use(errorHandler);
 

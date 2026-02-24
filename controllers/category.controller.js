@@ -3,14 +3,14 @@ const asyncHandler = require("../utils/asyncHandler");
 const ApiError = require("../utils/ApiError");
 const ApiResponse = require("../utils/ApiResponse");
 
-exports.createProduct = asyncHandler(async (req, res) => {
+exports.createCategory = asyncHandler(async (req, res) => {
   const category = await Category.create({
     ...req.body,
   });
 
   res
     .status(201)
-    .json(new ApiResponse(201, "Category created successfully", product));
+    .json(new ApiResponse(201, "Category created successfully", category));
 });
 
 exports.getProducts = asyncHandler(async (req, res) => {

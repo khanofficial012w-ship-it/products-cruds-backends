@@ -1,7 +1,20 @@
 const express = require("express");
-const { createProduct } = require("../controllers/product.controller");
+const {
+  createProduct,
+  getProducts,
+  getSingleProduct,
+  updateProduct,
+  deleteProduct,
+} = require("../controllers/product.controller");
+const { protect } = require("../middlewares/auth.middleware");
 const router = express.Router();
 
-router.post("/create", createProduct);
+router.route("/").get(getProducts).post(protect, createProduct);
+
+router
+  .route("/:slug")
+  .get(getSingleProduct)
+  .put(protect, updateProduct)
+  .delete(protect, deleteProduct);
 
 module.exports = router;
