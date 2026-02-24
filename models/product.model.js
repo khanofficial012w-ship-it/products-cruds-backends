@@ -4,7 +4,7 @@ const slugify = require("slugify");
 const productSchema = new mongoose.Schema(
   {
     name: {
-      type: string,
+      type: String,
       required: [true, "Product name is required"],
       trim: true,
       maxlength: [120, "Name cannot exceed 120 characters"],
