@@ -28,7 +28,7 @@ exports.getSingleCategory = asyncHandler(async (req, res) => {
   });
 
   if (!category) {
-    new ApiError(404, "Category not found");
+    throw new ApiError(404, "Category not found");
   }
 
   res
@@ -42,7 +42,7 @@ exports.updateCategory = asyncHandler(async (req, res) => {
   });
 
   if (!category) {
-    new ApiError(404, "Category not found");
+    throw new ApiError(404, "Category not found");
   }
 
   Object.assign(category, req.body);
@@ -60,7 +60,7 @@ exports.deleteCategory = asyncHandler(async (req, res) => {
   });
 
   if (!category) {
-    new ApiError(404, "Category not found");
+    throw new ApiError(404, "Category not found");
   }
   category.isActive = false;
   await category.save();

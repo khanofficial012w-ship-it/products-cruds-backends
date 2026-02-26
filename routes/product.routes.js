@@ -6,15 +6,15 @@ const {
   updateProduct,
   deleteProduct,
 } = require("../controllers/product.controller");
-const { protect } = require("../middlewares/auth.middleware");
+const { protect, isAdmin } = require("../middlewares/auth.middleware");
 const router = express.Router();
 
-router.route("/").get(getProducts).post(protect, createProduct);
+router.route("/").get(getProducts).post(protect, isAdmin, createProduct);
 
 router
   .route("/:slug")
   .get(getSingleProduct)
-  .put(protect, updateProduct)
-  .delete(protect, deleteProduct);
+  .put(protect, isAdmin, updateProduct)
+  .delete(protect, isAdmin, deleteProduct);
 
 module.exports = router;

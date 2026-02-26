@@ -23,4 +23,12 @@ const protect = asyncHandler(async (req, res, next) => {
   next();
 });
 
-module.exports = { protect };
+const isAdmin = asyncHandler(async (req, res, next) => {
+  if (!req.user || req.user.role !== "admin") {
+    throw new ApiError(403, "Access denied. Admins only.");
+  }
+
+  next();
+});
+
+module.exports = { protect, isAdmin };
