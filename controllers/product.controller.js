@@ -30,7 +30,7 @@ exports.getSingleProduct = asyncHandler(async (req, res) => {
     .populate("createdBy", "username");
 
   if (!product) {
-    new ApiError(404, "Product not found");
+    throw new ApiError(404, "Product not found");
   }
 
   res
@@ -42,7 +42,7 @@ exports.updateProduct = asyncHandler(async (req, res) => {
   const product = await Product.findOne({ slug: req.params.slug });
 
   if (!product) {
-    new ApiError(404, "Product not found");
+    throw new ApiError(404, "Product not found");
   }
 
   Object.assign(product, req.body);
@@ -57,7 +57,7 @@ exports.deleteProduct = asyncHandler(async (req, res) => {
   const product = await Product.findOne({ slug: req.params.slug });
 
   if (!product) {
-    new ApiError(404, "Product not found");
+    throw new ApiError(404, "Product not found");
   }
   product.isActive = false;
   await product.save();
