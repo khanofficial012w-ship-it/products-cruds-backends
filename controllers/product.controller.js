@@ -15,11 +15,60 @@ exports.createProduct = asyncHandler(async (req, res) => {
 });
 
 exports.getProducts = asyncHandler(async (req, res) => {
-  const product = await Product.find({ isActive: true });
+  const {
+    page = 1,
+    limit = 10,
+    keyword,
+    category,
+    minPrice,
+    maxPrice,
+    rating,
+    sortBy = "createdAt",
+    order = "desc",
+  } = req.query;
+  const filter = { isActive: true };
 
-  res
-    .status(201)
-    .json(new ApiResponse(201, "Product get successfully", product));
+  if (keyword) {
+    filter.$or = [
+      { name: { $regex: keyword, $options: "i" } },
+      { description: { $regex: keyword, $options: "i" } },
+    ];
+  }
+  if (category) {
+    filter.category = category;
+  }
+
+  if (minPrice || maxPrice) {
+    filter.price = {};
+    if (minPrice) filter.price.$gte = Number(minPrice);
+    if (maxPrice) filter.price.$lte = Number(maxPrice);
+  }
+
+  if (rating) {
+    filter.averageRating = { $gte: Number(rating) };
+  }
+
+  const sortOrder = order === "asc" ? 1 : -1;
+  const sortOptions = { [sortBy]: sortOrder };
+
+  const skip = (Number(page) - 1) * Number(limit);
+
+  const products = await Product.find(filter)
+    .sort(sortOptions)
+    .skip(skip)
+    .limit(Number(limit))
+    .lean();
+
+  const totalProducts = await Product.countDocuments(filter);
+
+  res.status(200).json(
+    new ApiResponse(200, "Products fetched successfully", {
+      totalProducts,
+      currentPage: Number(page),
+      totalPages: Math.ceil(totalProducts / limit),
+      products,
+    }),
+  );
 });
 
 exports.getSingleProduct = asyncHandler(async (req, res) => {
