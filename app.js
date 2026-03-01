@@ -22,8 +22,7 @@ app.use(cookieParser());
 
 connectDb();
 
-app.use("/api/users", require("./routes/user.routes"));
-app.use("/api/auth", require("./routes/auth.routes"));
+app.use("/api/users", require("./routes/auth.routes"));
 app.use("/api/products", require("./routes/product.routes"));
 app.use("/api/category", require("./routes/category.routes"));
 
