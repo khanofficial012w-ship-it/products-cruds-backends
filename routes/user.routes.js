@@ -3,14 +3,11 @@ const router = express.Router();
 
 const {
   register,
-  login,
-  refreshToken,
-  logout,
-} = require("../controllers/auth.controller");
+  updateProfile,
+  getSingleUser,
+} = require("../controllers/user.controller");
+const { protect } = require("../middlewares/auth.middleware");
 // AUTH Routes
-router.post("/register", register);
-router.post("/login", login);
-router.post("/refreshtoken", refreshToken);
-router.post("/logout", logout);
+router.route("/").get(getSingleUser).post(register).put(protect, updateProfile);
 
 module.exports = router;

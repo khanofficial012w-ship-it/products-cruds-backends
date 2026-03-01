@@ -3,34 +3,7 @@ const ApiError = require("../utils/ApiError");
 const ApiResponse = require("../utils/ApiResponse");
 const asyncHandler = require("../utils/asyncHandler");
 const jwt = require("jsonwebtoken");
-
-const register = asyncHandler(async (req, res, next) => {
-  const { username, password, email } = req.body;
-
-  if (!username || !password || !email) {
-    throw new ApiError(400, "All field are required");
-  }
-
-  const existingUser = await User.findOne({ $or: [{ email }, { username }] });
-
-  if (existingUser) {
-    throw new ApiError(400, "User already exist ");
-  }
-
-  const user = await User.create({
-    username,
-    password,
-    email,
-  });
-
-  return res.status(201).json(
-    new ApiResponse(201, "User created successfully", {
-      id: user._id,
-      username: user.username,
-      email: user.email,
-    }),
-  );
-});
+const AuditLog = require("../models/audit.model");
 
 const login = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
@@ -44,6 +17,13 @@ const login = asyncHandler(async (req, res) => {
   );
 
   if (!user) {
+    await AuditLog.create({
+      action: "USER_LOGIN_FAILED",
+      ipAddress: req.ip,
+      userAgent: req.headers["user-agent"],
+      metadata: { email },
+    });
+
     throw new ApiError(401, "Invalid credentials");
   }
 
@@ -63,6 +43,13 @@ const login = asyncHandler(async (req, res) => {
   user.refreshToken = refreshToken;
 
   await user.save({ validateBeforeSave: false });
+
+  await AuditLog.create({
+    user: user._id,
+    action: "USER_LOGIN",
+    ipAddress: req.ip,
+    userAgent: req.headers["user-agent"],
+  });
 
   res
     .cookie("accessToken", accessToken, {
@@ -140,6 +127,13 @@ const logout = asyncHandler(async (req, res) => {
     }
   }
 
+  await AuditLog.create({
+    user: decoded?.id,
+    action: "USER_LOGOUT",
+    ipAddress: req.ip,
+    userAgent: req.headers["user-agent"],
+  });
+
   res
     .clearCookie("accessToken")
     .clearCookie("refreshToken")
@@ -147,4 +141,4 @@ const logout = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, "Logged out successfully"));
 });
 
-module.exports = { register, login, refreshToken, logout };
+module.exports = { login, refreshToken, logout };
