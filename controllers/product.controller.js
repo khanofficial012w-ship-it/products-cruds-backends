@@ -123,16 +123,18 @@ exports.updateProduct = asyncHandler(async (req, res) => {
     }
   });
 
-  await AuditLog.create({
-    user: req.user.id,
-    action: "UPDATE_PRODUCT", // make sure this exists in enum
-    ipAddress: req.ip,
-    userAgent: req.headers["user-agent"],
-    metadata: {
-      productId: product._id,
-      changes: changeFields,
-    },
-  });
+  if (Object.keys(changeFields).length > 0) {
+    await AuditLog.create({
+      user: req.user.id,
+      action: "UPDATE_PRODUCT", // make sure this exists in enum
+      ipAddress: req.ip,
+      userAgent: req.headers["user-agent"],
+      metadata: {
+        productId: product._id,
+        changes: changeFields,
+      },
+    });
+  }
 
   res
     .status(200)
