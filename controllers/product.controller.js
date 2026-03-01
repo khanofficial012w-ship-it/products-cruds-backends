@@ -2,11 +2,22 @@ const Product = require("../models/product.model");
 const asyncHandler = require("../utils/asyncHandler");
 const ApiError = require("../utils/ApiError");
 const ApiResponse = require("../utils/ApiResponse");
-
+const AuditLog = require("../models/audit.model");
 exports.createProduct = asyncHandler(async (req, res) => {
   const product = await Product.create({
     ...req.body,
-    createdBy: req.user._id,
+    createdBy: req.user.id,
+  });
+  await AuditLog.create({
+    user: req.user.id,
+    action: "CREATE_PRODUCT", // make sure this exists in enum
+    ipAddress: req.ip,
+    userAgent: req.headers["user-agent"],
+    metadata: {
+      productId: product._id,
+      productName: product.name,
+      price: product.price,
+    },
   });
 
   res
@@ -94,8 +105,34 @@ exports.updateProduct = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Product not found");
   }
 
+  const oldValues = product.toObject();
+
   Object.assign(product, req.body);
   await product.save();
+
+  const newValues = product.toObject();
+
+  const changeFields = {};
+
+  Object.keys(req.body).forEach(() => {
+    if (oldValues[key] !== newValues[key]) {
+      changeFields[key] = {
+        oldValue: oldValues[key],
+        newValue: newValues[key],
+      };
+    }
+  });
+
+  await AuditLog.create({
+    user: req.user.id,
+    action: "UPDATE_PRODUCT", // make sure this exists in enum
+    ipAddress: req.ip,
+    userAgent: req.headers["user-agent"],
+    metadata: {
+      productId: product._id,
+      changes: changeFields,
+    },
+  });
 
   res
     .status(200)
@@ -110,6 +147,18 @@ exports.deleteProduct = asyncHandler(async (req, res) => {
   }
   product.isActive = false;
   await product.save();
+
+  await AuditLog.create({
+    user: req.user.id,
+    action: "DELETE_PRODUCT", // make sure this exists in enum
+    ipAddress: req.ip,
+    userAgent: req.headers["user-agent"],
+    metadata: {
+      productId: product._id,
+      productName: product.name,
+      price: product.price,
+    },
+  });
 
   res
     .status(200)

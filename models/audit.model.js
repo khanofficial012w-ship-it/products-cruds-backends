@@ -10,13 +10,6 @@ const auditLogSchema = new mongoose.Schema(
     },
     action: {
       type: String,
-      enum: [
-        "LOGIN_SUCCESS",
-        "LOGIN_FAILED",
-        "ORDER_PLACED",
-        "ORDER_CANCELLED",
-        "DELETE_PRODUCT",
-      ],
       required: true,
     },
     ipAddress: String,
