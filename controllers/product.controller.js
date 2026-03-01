@@ -6,10 +6,10 @@ const AuditLog = require("../models/audit.model");
 exports.createProduct = asyncHandler(async (req, res) => {
   const product = await Product.create({
     ...req.body,
-    createdBy: req.user.id,
+    createdBy: req.user._id,
   });
   await AuditLog.create({
-    user: req.user.id,
+    user: req.user._id,
     action: "CREATE_PRODUCT", // make sure this exists in enum
     ipAddress: req.ip,
     userAgent: req.headers["user-agent"],
@@ -125,7 +125,7 @@ exports.updateProduct = asyncHandler(async (req, res) => {
 
   if (Object.keys(changeFields).length > 0) {
     await AuditLog.create({
-      user: req.user.id,
+      user: req.user._id,
       action: "UPDATE_PRODUCT", // make sure this exists in enum
       ipAddress: req.ip,
       userAgent: req.headers["user-agent"],
@@ -151,7 +151,7 @@ exports.deleteProduct = asyncHandler(async (req, res) => {
   await product.save();
 
   await AuditLog.create({
-    user: req.user.id,
+    user: req.user._id,
     action: "DELETE_PRODUCT", // make sure this exists in enum
     ipAddress: req.ip,
     userAgent: req.headers["user-agent"],
