@@ -55,7 +55,7 @@ const getSingleUser = asyncHandler(async (req, res) => {
 const updateProfile = asyncHandler(async (req, res) => {
   const userId = req.user._id;
 
-  const allowedFields = ["username", "email", "password"];
+  const allowedFields = ["username", "email"];
   const updates = {};
 
   allowedFields.forEach((field) => {
@@ -68,8 +68,7 @@ const updateProfile = asyncHandler(async (req, res) => {
     throw new ApiError(400, "No valid fields provided for update");
   }
 
-  // If updating password → need password selected
-  const user = await User.findById(userId).select("+password");
+  const user = await User.findById(userId);
 
   if (!user) {
     throw new ApiError(404, "User not found");
@@ -77,8 +76,10 @@ const updateProfile = asyncHandler(async (req, res) => {
 
   const oldUser = user.toObject();
 
-  // If email or username changed → check duplicates
-  if (updates.email || updates.username) {
+  if (
+    (updates.email && updates.email !== user.email) ||
+    (updates.username && updates.username !== user.username)
+  ) {
     const existingUser = await User.findOne({
       $or: [
         updates.email ? { email: updates.email } : null,
@@ -93,16 +94,13 @@ const updateProfile = asyncHandler(async (req, res) => {
   }
 
   Object.assign(user, updates);
-  await user.save(); // password auto-hash if changed
+  await user.save();
 
   const newUser = user.toObject();
 
-  // Detect changes (exclude password from audit)
   const changedFields = {};
 
   Object.keys(updates).forEach((key) => {
-    if (key === "password") return;
-
     if (oldUser[key] !== newUser[key]) {
       changedFields[key] = {
         oldValue: oldUser[key],
@@ -110,10 +108,6 @@ const updateProfile = asyncHandler(async (req, res) => {
       };
     }
   });
-
-  if (updates.password) {
-    changedFields.password = "UPDATED";
-  }
 
   if (Object.keys(changedFields).length > 0) {
     await AuditLog.create({
@@ -136,4 +130,76 @@ const updateProfile = asyncHandler(async (req, res) => {
   );
 });
 
-module.exports = { register, updateProfile, getSingleUser };
+const changePassword = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+  const { currentPassword, newPassword } = req.body;
+
+  if (!currentPassword || !newPassword) {
+    throw new ApiError(400, "Both current and new password are required");
+  }
+
+  if (newPassword.length < 6) {
+    throw new ApiError(400, "New password must be at least 6 characters");
+  }
+
+  // Select password explicitly because it's select:false in schema
+  const user = await User.findById(userId).select("+password");
+
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  // 1️⃣ Verify current password
+  const isMatch = await user.comparePassword(currentPassword);
+
+  if (!isMatch) {
+    await AuditLog.create({
+      user: userId,
+      action: "PASSWORD_CHANGE_FAILED",
+      ipAddress: req.ip,
+      userAgent: req.headers["user-agent"],
+    });
+
+    throw new ApiError(401, "Current password is incorrect");
+  }
+
+  // 2️⃣ Prevent same password reuse
+  const isSamePassword = await user.comparePassword(newPassword);
+
+  if (isSamePassword) {
+    throw new ApiError(
+      400,
+      "New password must be different from current password",
+    );
+  }
+
+  // 3️⃣ Set new password (auto-hashed by pre-save hook)
+  user.password = newPassword;
+
+  // 4️⃣ Invalidate refresh token (force re-login everywhere)
+  user.refreshToken = undefined;
+
+  await user.save();
+
+  // 5️⃣ Audit success
+  await AuditLog.create({
+    user: userId,
+    action: "PASSWORD_CHANGED",
+    ipAddress: req.ip,
+    userAgent: req.headers["user-agent"],
+  });
+
+  // 6️⃣ Clear cookies (force logout on current device too)
+  res
+    .clearCookie("accessToken")
+    .clearCookie("refreshToken")
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        "Password changed successfully. Please login again.",
+      ),
+    );
+});
+
+module.exports = { register, updateProfile, getSingleUser, changePassword };
