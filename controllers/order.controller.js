@@ -5,7 +5,7 @@ const ApiError = require("../utils/ApiError");
 const ApiResponse = require("../utils/ApiResponse");
 const Product = require("../models/product.model");
 
-module.exports.CreateOrder = asyncHandler(async (req, res) => {
+exports.CreateOrder = asyncHandler(async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
@@ -110,32 +110,6 @@ exports.getOrderById = asyncHandler(async (req, res) => {
   }
 
   res.status(200).json(new ApiResponse(200, "order get successfully", order));
-});
-
-// @desc    Update order to paid
-// @route   PUT /api/orders/:id/pay
-// @access  Private
-exports.markOrderPaid = asyncHandler(async (req, res) => {
-  const order = await Order.findById(req.params.id);
-
-  if (!order) {
-    throw new ApiError(404, "Order not found");
-  }
-
-  order.isPaid = true;
-  order.paidAt = Date.now();
-  order.status = "Processing";
-
-  order.paymentResult = {
-    id: req.body.id,
-    status: req.body.status,
-    email: req.body.email,
-    method: req.body.method,
-  };
-
-  await order.save();
-
-  res.status(200).json(new ApiResponse(200, "Order marked as paid", order));
 });
 
 // @desc    Update order status
