@@ -1,4 +1,6 @@
 const express = require("express");
+const router = express.Router();
+
 const {
   CreateOrder,
   getMyOrders,
@@ -7,14 +9,23 @@ const {
   cancelOrder,
   getAllOrders,
 } = require("../controllers/order.controller");
+
 const { protect, isAdmin } = require("../middlewares/auth.middleware");
-const router = express.Router();
 
-router.route("/").get(getAllOrders).post(protect, isAdmin, CreateOrder);
+// USER ROUTES
 
-router.route("/:id").get(getOrderById).put(protect, cancelOrder);
+router.post("/", protect, CreateOrder);
 
-router.route("/my").get(protect, getMyOrders);
-router("/:id/status", isAdmin, updateOrderStatus);
+router.get("/my", protect, getMyOrders);
+
+router.get("/:id", protect, getOrderById);
+
+router.patch("/:id/cancel", protect, cancelOrder);
+
+// Admin Routes
+
+router.get("/", protect, isAdmin, getAllOrders);
+
+router.patch("/:id/status", protect, isAdmin, updateOrderStatus);
 
 module.exports = router;
