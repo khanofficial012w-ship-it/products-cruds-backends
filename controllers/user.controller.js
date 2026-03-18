@@ -53,6 +53,60 @@ const getSingleUser = asyncHandler(async (req, res) => {
   );
 });
 
+const updateSingleUser = asyncHandler(async (req, res) => {
+  const { userId } = req.params;
+
+  if (!userId) {
+    throw new ApiError(400, "User ID is required");
+  }
+
+  const allowedFields = ["username", "email", "role", "status"];
+  const updates = {};
+
+  for (const key of allowedFields) {
+    if (req.body[key] !== undefined) {
+      updates[key] = req.body[key];
+    }
+  }
+
+  if (Object.keys(updates).length === 0) {
+    throw new ApiError(400, "No valid fields to update");
+  }
+
+  // 🔍 Get old user for audit comparison
+  const existingUser = await User.findById(userId);
+  if (!existingUser) {
+    throw new ApiError(404, "User not found");
+  }
+
+  const updatedUser = await User.findByIdAndUpdate(userId, updates, {
+    new: true,
+    runValidators: true,
+  });
+
+  // 🧾 Create audit log
+  await AuditLog.create({
+    user: req.user.id, // admin performing action
+    targetUser: userId, // affected user
+    action: "UPDATE_USER",
+    ipAddress: req.ip,
+    userAgent: req.headers["user-agent"],
+    metadata: {
+      before: {
+        username: existingUser.username,
+        email: existingUser.email,
+        role: existingUser.role,
+        isActive: existingUser.isActive,
+      },
+      after: updates,
+    },
+  });
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, "User updated successfully", updatedUser));
+});
+
 const updateProfile = asyncHandler(async (req, res) => {
   const userId = req.user._id;
 
@@ -204,7 +258,7 @@ const changePassword = asyncHandler(async (req, res) => {
 });
 
 const getAllUsers = asyncHandler(async (req, res) => {
-  const user = await User.find({ status: "active" });
+  const user = await User.find();
   res.status(200).json(new ApiResponse(200, "users get successfully", user));
 });
 
@@ -214,4 +268,5 @@ module.exports = {
   getSingleUser,
   changePassword,
   getAllUsers,
+  updateSingleUser,
 };

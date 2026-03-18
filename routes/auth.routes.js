@@ -13,6 +13,7 @@ const {
   getSingleUser,
   changePassword,
   getAllUsers,
+  updateSingleUser,
 } = require("../controllers/user.controller");
 
 const { protect } = require("../middlewares/auth.middleware");
@@ -28,5 +29,6 @@ router.put("/change-password", protect, changePassword);
 router.get("/me", protect, getSingleUser);
 router.put("/me", protect, updateProfile);
 router.get("/", getAllUsers);
+router.put("/:userId", protect, updateSingleUser);
 
 module.exports = router;
